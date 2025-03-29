@@ -183,16 +183,31 @@ func CreateContainer(ImageName string, Id string) error {
 		}
 	}
 
+	// the orchestration_default network is the default network that traefik starts on in docker.
+	// for other containers to be accessible by traefik they need to be on the same network.
+	// therefore we assign the orchestration_default network to every network so that traefik can access it.
+
+	// db-network will be a future plan to host a database container and making all the containers communicate to that db.
+
+	labels := make(map[string]string, 0)
+
+	labels["traefik.enable"] = "true"
+	labels["traefik.http.routers.my.rule"] = fmt.Sprintf("Host(`%v.localhost`)", Id)
+	labels["traefik.http.routers.my.entrypoints"] = "web"
+	labels["traefik.docker.network"] = "orchestration_default"
+
 	resp, err := dockerCli.ContainerCreate(ctx, &container.Config{
 		Image: ImageName,
 		ExposedPorts: nat.PortSet{
 			"3000/tcp": struct{}{},
 		},
+		Labels: labels,
 	}, &container.HostConfig{
 		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
 	}, &network.NetworkingConfig{
 		EndpointsConfig: map[string]*network.EndpointSettings{
-			"db-network": {},
+			"db-network":            {},
+			"orchestration_default": {},
 		},
 	}, nil, Id)
 
@@ -207,7 +222,7 @@ func CreateContainer(ImageName string, Id string) error {
 		return err
 	}
 
-	fmt.Println("{SERVER}: Container started successfully:", resp.ID)
+	fmt.Println(fmt.Sprintf("{SERVER}: Container started on domain: http://%v.localhost", Id))
 
 	return StreamContainerLogs(ctx, resp.ID)
 }
