@@ -99,6 +99,10 @@ func main() {
 
 	})
 
+	r.POST("/deploy", func(ctx *gin.Context) {
+
+	})
+
 	r.POST("/webhook", func(ctx *gin.Context) {
 		var json WebhookPayloadStruct
 
