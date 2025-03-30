@@ -10,7 +10,6 @@ const (
 type DockerTemplateData struct {
 	RepoIdentifier string
 	Port           int
-	FilePath       string
 	EnvVars        []EnvVar
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/Qu-Ack/orchestration/services/deploy"
 	"github.com/docker/docker/client"
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 type Server struct {

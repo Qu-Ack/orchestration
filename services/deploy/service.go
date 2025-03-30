@@ -149,7 +149,6 @@ func (d *DeployService) Deploy(deployment *Deployment, dockerCli *client.Client)
 			Port:           deployment.Port,
 			RepoIdentifier: deployment.ID,
 			EnvVars:        deployment.EnvVars,
-			FilePath:       fmt.Sprintf("%v/src/index.js", deployment.ProjectPath),
 		}, service)
 
 		if err != nil {

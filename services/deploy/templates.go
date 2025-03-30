@@ -15,7 +15,7 @@ ENV {{.Key}}={{.Value}}
 {{end}}
 RUN npm install
 EXPOSE {{.Port}}
-CMD ["node", "{{.FilePath}}"]
+CMD ["node", "./src/index.js"]
 `
 
 const NextjsDockerFileTemplate = `

@@ -171,7 +171,7 @@ func (d *DeployService) ContainerCreate(deployment *Deployment, dockerCli *clien
 	labels["traefik.enable"] = "true"
 	labels["traefik.http.routers.my.rule"] = fmt.Sprintf("Host(`%v.localhost`)", deployment.SubDomain)
 	labels["traefik.http.routers.my.entrypoints"] = "web"
-	labels["traefik.docker.network"] = "orchestration_default"
+	labels["traefik.docker.network"] = "traefik_init_default"
 
 	resp, err := dockerCli.ContainerCreate(ctx, &container.Config{
 		Image: fmt.Sprintf("%v-image", deployment.ID),
@@ -183,8 +183,8 @@ func (d *DeployService) ContainerCreate(deployment *Deployment, dockerCli *clien
 		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
 	}, &network.NetworkingConfig{
 		EndpointsConfig: map[string]*network.EndpointSettings{
-			"db-network":            {},
-			"orchestration_default": {},
+			"db-network":           {},
+			"traefik_init_default": {},
 		},
 	}, nil, deployment.SubDomain)
 
