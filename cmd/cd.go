@@ -29,11 +29,6 @@ type DockerTemplateData struct {
 	EnvVars        []EnvVar
 }
 
-type EnvVar struct {
-	Key   string
-	Value string
-}
-
 const NodeDockerFileTemplate = `
 FROM {{.BaseImage}}
 WORKDIR /app

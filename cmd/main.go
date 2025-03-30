@@ -49,7 +49,6 @@ type WebhookPayloadRepositoryStruct struct {
 }
 
 type WebhookPayloadStruct struct {
-	Id         string
 	Ref        string                         `json:"ref"`
 	Repository WebhookPayloadRepositoryStruct `json:"repository"`
 	Commits    []WebhookPayloadCommitStruct   `json:"commits"`
