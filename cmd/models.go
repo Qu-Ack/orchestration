@@ -19,8 +19,11 @@ type WebhookPayloadRepositoryStruct struct {
 }
 
 type WebhookPayloadStruct struct {
-	Id         string
 	Ref        string                         `json:"ref"`
 	Repository WebhookPayloadRepositoryStruct `json:"repository"`
 	Commits    []WebhookPayloadCommitStruct   `json:"commits"`
+}
+
+type WebhookPayloadBody struct {
+	Payload WebhookPayloadStruct `json:"payload"`
 }

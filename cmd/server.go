@@ -67,4 +67,8 @@ func (s *Server) SetUpRoutes() {
 
 	s.r.POST("/webhook", s.PostWebHook)
 	s.r.POST("/deploy", s.PostDeploy)
+	s.r.PUT("/env/:deploymentid/:envid", s.PutEnv)
+	s.r.DELETE("/env/:deploymentid/:envid", s.DeleteEnv)
+	s.r.POST("/env/:deploymentid", s.PostEnv)
+	s.r.PUT("/redeploy/:deploymentid", s.REDeploy)
 }

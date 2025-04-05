@@ -169,8 +169,8 @@ func (d *DeployService) ContainerCreate(deployment *Deployment, dockerCli *clien
 	labels := make(map[string]string, 0)
 
 	labels["traefik.enable"] = "true"
-	labels["traefik.http.routers.my.rule"] = fmt.Sprintf("Host(`%v.localhost`)", deployment.SubDomain)
-	labels["traefik.http.routers.my.entrypoints"] = "web"
+	labels[fmt.Sprintf("traefik.http.routers.%v.rule", deployment.SubDomain)] = fmt.Sprintf("Host(`%v.localhost`)", deployment.SubDomain)
+	labels[fmt.Sprintf("traefik.http.routers.%v.entrypoints", deployment.SubDomain)] = "web"
 	labels["traefik.docker.network"] = "traefik_init_default"
 
 	resp, err := dockerCli.ContainerCreate(ctx, &container.Config{

@@ -42,7 +42,7 @@ func (d *DeployService) NewDeployment(deployment *Deployment) (*Deployment, erro
 		return nil, err
 	}
 
-	err = d.repo.addEnvVars(deployment)
+	err = d.repo.addEnvVars(deployment, deployment.EnvVars)
 
 	if err != nil {
 		return nil, err
@@ -84,6 +84,17 @@ func (d *DeployService) CheckDeploymentExistenceBasedOnCloneUrl(CloneUrl string)
 	return true
 }
 
+func (d *DeployService) CheckDeploymentExistenceBasedOnId(id string) bool {
+	err := d.repo.findDeploymentBasedOnId(id)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
+}
+
 func (d *DeployService) CheckDeploymentExistenceBasedOnSubDomain(SubDomain string) bool {
 	err := d.repo.findDeploymentBasedOnSubdomain(SubDomain)
 
@@ -104,7 +115,61 @@ func (d *DeployService) GetDeploymentBasedOnCloneUrl(CloneUrl string) (*Deployme
 	return dep, nil
 }
 
-func (d *DeployService) Deploy(deployment *Deployment, dockerCli *client.Client) error {
+func (d *DeployService) GetDeploymentBasedOnID(deploymentId string) (*Deployment, error) {
+	dep, err := d.repo.GetDeploymentByID(deploymentId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dep, nil
+}
+
+func (d *DeployService) UpdateEnvVar(deployment *Deployment, oldEnv EnvVar, newEnv EnvVar) error {
+
+	err := d.repo.getEnv(deployment, &oldEnv)
+
+	if err != nil {
+		return err
+	}
+
+	err = d.repo.updateEnvVar(deployment, oldEnv, newEnv)
+
+	if err != nil {
+		return nil
+	}
+
+	return err
+}
+
+func (d *DeployService) AddEnvs(deployment *Deployment, envs []EnvVar) error {
+	err := d.repo.addEnvVars(deployment, envs)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *DeployService) DeleteEnvVar(deployment *Deployment, env EnvVar) error {
+
+	err := d.repo.getEnv(deployment, &env)
+
+	if err != nil {
+		return err
+	}
+
+	err = d.repo.deleteEnvVar(deployment, env)
+
+	if err != nil {
+		return nil
+	}
+
+	return err
+}
+
+func (d *DeployService) Deploy(deployment *Deployment, dockerCli *client.Client, redeploy bool) error {
 	err := d.GetCodeBase(deployment)
 
 	if err != nil {
@@ -114,6 +179,10 @@ func (d *DeployService) Deploy(deployment *Deployment, dockerCli *client.Client)
 	}
 
 	dockerFileExists := d.FindDockerFile(deployment)
+
+	if redeploy {
+		dockerFileExists = false
+	}
 
 	if dockerFileExists {
 		err := d.BuildImage(deployment)
