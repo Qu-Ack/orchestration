@@ -64,6 +64,9 @@ func (d *DeployService) CreateDockerFile(deployment *Deployment, data DockerTemp
 	case next:
 		_, err = f.WriteString(ExecuteNextTemplate(data))
 		return err
+	case golang:
+		_, err := f.WriteString(ExecuteGoTemplate(data))
+		return err
 	default:
 		return errors.New("invalid project type")
 	}
@@ -186,7 +189,7 @@ func (d *DeployService) ContainerCreate(deployment *Deployment, dockerCli *clien
 			"db-network":           {},
 			"traefik_init_default": {},
 		},
-	}, nil, deployment.SubDomain)
+	}, nil, deployment.ID)
 
 	if err != nil {
 		return err

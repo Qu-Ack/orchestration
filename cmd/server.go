@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -31,12 +32,25 @@ func NewDockerClient() *client.Client {
 }
 
 func NewDB() *sql.DB {
-	connStr := "user=postgres dbname=orchestration password=postgres sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	host := "localhost"
+	port := 5433
+	user := "postgres"
+	password := "postgres"
+	dbname := "orchestration"
 
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Println(err.Error())
-		log.Panic("{SERVER}: Error while connecting to database")
+		log.Panic("Error while connecting to database")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Println(err.Error())
+		log.Panic("Error while verifying connection to database")
 	}
 
 	return db

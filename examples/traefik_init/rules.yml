@@ -1,0 +1,13 @@
+http:
+  routers:
+    orchestration-router:
+      rule: "Host(`orchestration.localhost`)" 
+      service: orchestration-service
+      entryPoints:
+        - "web"
+
+  services:
+    orchestration-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:5000"
