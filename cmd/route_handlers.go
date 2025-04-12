@@ -40,15 +40,20 @@ func (s *Server) PostWebHook(c *gin.Context) {
 					return
 				}
 			} else {
-				deployment, err := s.deployService.NewDeploymentFromWebhook(json.Repository.Name, json.Repository.CloneUrl, json.Ref)
-				if err != nil {
-					fmt.Printf("Error creating new deployment: %v\n", err)
-					return
-				}
-				if err := s.deployService.Deploy(deployment, s.dockerCli, true); err != nil {
-					fmt.Printf("Error deploying new deployment: %v\n", err)
-					return
-				}
+				//				deployment, err := s.deployService.NewDeploymentFromWebhook(json.Repository.Name, json.Repository.CloneUrl, json.Ref)
+				//				if err != nil {
+				//					fmt.Printf("Error creating new deployment: %v\n", err)
+				//					return
+				//				}
+
+				//				if err := s.deployService.Deploy(deployment, s.dockerCli, true); err != nil {
+				//					fmt.Printf("Error deploying new deployment: %v\n", err)
+				//					return
+				//				}
+
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "no deployment found",
+				})
 			}
 		}
 	}()
@@ -84,10 +89,21 @@ func (s *Server) PostDeploy(c *gin.Context) {
 
 	var json body
 	err := c.ShouldBindJSON(&json)
+	sessionId := c.GetHeader("Authorization")
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "bad body",
+		})
+		return
+	}
+
+	ses, err := s.userService.GetSessionByID(sessionId)
+
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
 		})
 		return
 	}
@@ -102,11 +118,27 @@ func (s *Server) PostDeploy(c *gin.Context) {
 	})
 
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
+
+	_, err = s.userService.AddDeploymentToUser(&user.UserDeployment{
+		UserID:       ses.UserID,
+		DeploymentID: deployment.ID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+
+	}
+
+	fmt.Println("after add deployment")
 
 	err = s.deployService.Deploy(deployment, s.dockerCli, false)
 
@@ -315,6 +347,7 @@ func (s *Server) PostLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"sesid":  ses.ID,
+		"userid": ses.UserID,
 	})
 
 }
@@ -393,4 +426,59 @@ func (s *Server) GetDeployment(c *gin.Context) {
 		"status":     "success",
 		"deployment": deployment,
 	})
+}
+
+func (s *Server) GetContainerStats(c *gin.Context) {
+	deploymentId := c.Params.ByName("deploymentid")
+
+	deployment, err := s.deployService.GetDeploymentBasedOnID(deploymentId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	stats, err := s.deployService.GetDeploymentStats(deployment, s.dockerCli, c.Request.Context())
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"stats":  stats,
+	})
+}
+
+func (s *Server) GetContainerLogs(c *gin.Context) {
+	deploymentId := c.Params.ByName("deploymentid")
+
+	deployment, err := s.deployService.GetDeploymentBasedOnID(deploymentId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	logs, err := s.deployService.GetContainerLogs(deployment, s.dockerCli)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"logs":   logs,
+	})
+
 }

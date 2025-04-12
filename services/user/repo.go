@@ -1,6 +1,9 @@
 package user
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 func (r *UserServiceRepo) UploadUser(user *User) error {
 	query := `
@@ -41,11 +44,24 @@ func (r *UserServiceRepo) GetUserByUsername(username string) (*User, error) {
 
 func (r *UserServiceRepo) CreateSession(session *Session) error {
 	query := `
-		INSERT INTO sessions (user_id, logged_in_at, expires_at)
-		VALUES ($1, $2, $3)
-		RETURNING id
-	`
-	return r.db.QueryRow(query, session.UserID, session.LoggedInAt, session.ExpiresAt).Scan(&session.ID)
+        INSERT INTO sessions (id, user_id, logged_in_at, expires_at)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+    `
+
+	err := r.db.QueryRow(
+		query,
+		session.ID,
+		session.UserID,
+		session.LoggedInAt,
+		session.ExpiresAt,
+	).Scan(&session.ID)
+
+	if err != nil {
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+
+	return nil
 }
 
 func (r *UserServiceRepo) GetSessionByID(id string) (*Session, error) {

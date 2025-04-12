@@ -149,3 +149,15 @@ func (u *UserService) GetUserDeployment(userId string, deploymentId string) (*Us
 		return ud, nil
 	}
 }
+
+func (u *UserService) AddDeploymentToUser(ud *UserDeployment) (*UserDeployment, error) {
+	err := u.repo.AddUserDeployment(ud)
+
+	if err != nil {
+		fmt.Println("ERROR WHILE ADDING USER DEPLOYMENT")
+		fmt.Println(err)
+		return ud, err
+	}
+
+	return ud, nil
+}
