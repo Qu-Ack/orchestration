@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/Qu-Ack/orchestration/services/deploy"
+	"github.com/Qu-Ack/orchestration/services/user"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 )
 
 func (s *Server) PostWebHook(c *gin.Context) {
@@ -247,5 +249,148 @@ func (s *Server) REDeploy(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
+	})
+}
+
+func (s *Server) PostUser(c *gin.Context) {
+	type Body struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	var json Body
+
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "bad body",
+		})
+		return
+	}
+
+	user, err := s.userService.CreateUser(&user.User{
+		Username: json.Username,
+		Password: json.Password,
+	})
+
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"user":   user,
+	})
+}
+
+func (s *Server) PostLogin(c *gin.Context) {
+	type Body struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	var json Body
+
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "bad body",
+		})
+		return
+	}
+
+	ses, err := s.userService.Login(&user.User{
+		Username: json.Username,
+		Password: json.Password,
+	})
+
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"sesid":  ses.ID,
+	})
+
+}
+
+func (s *Server) GetUserDeployments(c *gin.Context) {
+	userId := c.Param("userid")
+
+	deploymentIds, err := s.userService.GetUserDeployments(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	deployments := make([]*deploy.Deployment, len(deploymentIds))
+	var eg errgroup.Group
+
+	for i, deploymentId := range deploymentIds {
+		i, deploymentId := i, deploymentId
+		eg.Go(func() error {
+			deployment, err := s.deployService.GetDeploymentBasedOnID(deploymentId)
+			if err != nil {
+				return err
+			}
+			deployments[i] = deployment
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":      "success",
+		"deployments": deployments,
+	})
+}
+
+func (s *Server) GetDeployment(c *gin.Context) {
+	deploymentId := c.Params.ByName("deploymentid")
+	sesId := c.GetHeader("Authorization")
+
+	ses, err := s.userService.GetSessionByID(sesId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	ud, err := s.userService.GetUserDeployment(ses.UserID, deploymentId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	deployment, err := s.deployService.GetDeploymentBasedOnID(ud.DeploymentID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":     "success",
+		"deployment": deployment,
 	})
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Qu-Ack/orchestration/services/deploy"
+	"github.com/Qu-Ack/orchestration/services/user"
 	"github.com/docker/docker/client"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -17,6 +18,7 @@ type Server struct {
 	dockerCli     *client.Client
 	db            *sql.DB
 	deployService *deploy.DeployService
+	userService   *user.UserService
 }
 
 func NewDockerClient() *client.Client {
@@ -70,6 +72,7 @@ func NewServer() *Server {
 
 func (s *Server) InstanitateServerServices() {
 	s.deployService = deploy.NewDeployService(s.db)
+	s.userService = user.NewUserService(s.db)
 }
 
 func (s *Server) SetUpRoutes() {
@@ -85,4 +88,8 @@ func (s *Server) SetUpRoutes() {
 	s.r.DELETE("/env/:deploymentid/:envid", s.DeleteEnv)
 	s.r.POST("/env/:deploymentid", s.PostEnv)
 	s.r.PUT("/redeploy/:deploymentid", s.REDeploy)
+	s.r.POST("/register", s.PostUser)
+	s.r.POST("/login", s.PostLogin)
+	s.r.GET("/deployments/:userid", s.AuthMiddleware(), s.GetUserDeployments)
+	s.r.GET("/deployment/:deploymentid", s.AuthMiddleware(), s.GetDeployment)
 }
