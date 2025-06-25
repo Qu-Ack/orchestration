@@ -49,6 +49,9 @@ func constructProjectPath(id string) string {
 }
 
 func (d *DeployService) CreateDockerFile(deployment *Deployment, data DockerTemplateData, ProjectType int) error {
+
+	fmt.Println("Project Type is ", ProjectType)
+
 	f, err := os.Create(fmt.Sprintf("%v/Dockerfile", deployment.ProjectPath))
 
 	if err != nil {
@@ -67,6 +70,9 @@ func (d *DeployService) CreateDockerFile(deployment *Deployment, data DockerTemp
 	case golang:
 		_, err := f.WriteString(ExecuteGoTemplate(data))
 		return err
+	case react:
+		_, err := f.WriteString(ExecuteViteReactTemplate(data))
+		return err
 	default:
 		return errors.New("invalid project type")
 	}
@@ -83,6 +89,7 @@ func (d *DeployService) BuildImage(deployment *Deployment) error {
 func (d *DeployService) ServiceDiscovery(deployment *Deployment) (int, error) {
 	services := map[string]int{
 		"src/index.js":    node,
+		"index.js":        node,
 		"next.config.ts":  next,
 		"next.config.mjs": next,
 		"go.mod":          golang,
