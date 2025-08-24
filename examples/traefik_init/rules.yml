@@ -1,15 +1,29 @@
 http:
   routers:
     orchestration-router:
-      rule: "Host(`api-orchestration.test`)" 
+      rule: "Host(`api-orchestration.dakshsangal.live`)" 
       service: api-orchestration-service
       entryPoints:
         - "web"
     orchestration-frontend:
-      rule: "Host(`orchestration.test`)"
+      rule: "Host(`orchestration.dakshsangal.live`)"
       service: orchestration-service
       entryPoints:
         - "web"
+
+    orchestration-router-secure:
+      rule: "Host(`api-orchestration.dakshsangal.live`)"
+      service: api-orchestration-service
+      entryPoints:
+        - "websecure"
+      tls: true
+
+    orchestration-frontend-secure:
+      rule: "Host(`orchestration.dakshsangal.live`)"
+      service: orchestration-service
+      entryPoints:
+        - "websecure"
+      tls: true
 
   services:
     api-orchestration-service:
@@ -20,5 +34,14 @@ http:
       loadBalancer:
         servers:
           - url: "http://host.docker.internal:3000"
-
-
+tls:
+  certificates:
+    - certFile: /certs/fullchain.crt
+      keyFile: /certs/private.key
+      stores:
+        - default
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/fullchain.crt
+        keyFile: /certs/private.key

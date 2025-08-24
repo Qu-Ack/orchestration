@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: "traefik:v3.3"
+    image: "traefik:latest"
     container_name: "traefik"
     command:
       - "--providers.docker=true"
@@ -10,10 +10,13 @@ services:
       - "--api.insecure=true"  
     ports:
       - "80:80"
+      - "443:443"
       - "8080:8080" 
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./traefik.yml:/etc/traefik/traefik.yml"
       - "./rules.yml:/etc/traefik/rules.yml"  
+      - "/etc/ssl/certs/dakshsangal.live/fullchain.crt:/certs/fullchain.crt:ro"
+      - "/root/dakshsangal.live.key:/certs/private.key:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"  
