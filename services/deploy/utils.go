@@ -187,7 +187,7 @@ func (d *DeployService) ContainerCreate(deployment *Deployment, dockerCli *clien
 		fmt.Sprintf("Host(`%v.dakshsangal.live`)", deployment.SubDomain)
 	labels[fmt.Sprintf("traefik.http.routers.%v-websecure.entrypoints", deployment.SubDomain)] = "websecure"
 	labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls", deployment.SubDomain)] = "true"
-
+	labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls.certresolver", deployment.SubDomain)] = "letsencrypt"
 	labels["traefik.docker.network"] = "traefik_init_default"
 
 	resp, err := dockerCli.ContainerCreate(ctx, &container.Config{

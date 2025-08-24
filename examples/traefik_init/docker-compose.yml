@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   traefik:
     image: "traefik:latest"
@@ -7,16 +9,23 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--providers.file.filename=/etc/traefik/rules.yml"
       - "--providers.file.watch=true"
-      - "--api.insecure=true"  
+      - "--api.insecure=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=dakshsangal@gmail.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=digitalocean"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.delayBeforeCheck=0"
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080" 
+      - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./traefik.yml:/etc/traefik/traefik.yml"
-      - "./rules.yml:/etc/traefik/rules.yml"  
-      - "/etc/ssl/certs/dakshsangal.live/fullchain.crt:/certs/fullchain.crt:ro"
-      - "/root/dakshsangal.live.key:/certs/private.key:ro"
+      - "./rules.yml:/etc/traefik/rules.yml"
+      - "./letsencrypt:/letsencrypt"
+    environment:
+      - DO_AUTH_TOKEN=${DO_AUTH_TOKEN}  
     extra_hosts:
-      - "host.docker.internal:host-gateway"  
+      - "host.docker.internal:host-gateway"

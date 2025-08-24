@@ -6,7 +6,7 @@ entryPoints:
 
 api:
   dashboard: true
-  insecure: true  
+  insecure: true
 
 providers:
   docker:
@@ -14,3 +14,4 @@ providers:
   file:
     filename: "/etc/traefik/rules.yml"
     watch: true
+
