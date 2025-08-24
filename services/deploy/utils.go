@@ -209,3 +209,7 @@ func (d *DeployService) ContainerCreate(deployment *Deployment, dockerCli *clien
 
 	return nil
 }
+
+func sendEvent(c chan string, msg string) {
+	c <- msg
+}

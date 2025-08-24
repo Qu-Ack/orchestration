@@ -19,6 +19,8 @@ type Server struct {
 	db            *sql.DB
 	deployService *deploy.DeployService
 	userService   *user.UserService
+	sseChannel    chan string
+	errorChannel  chan string
 }
 
 func NewDockerClient() *client.Client {
@@ -64,9 +66,10 @@ func (s *Server) ServerCleanUp() {
 
 func NewServer() *Server {
 	return &Server{
-		r:         gin.Default(),
-		dockerCli: NewDockerClient(),
-		db:        NewDB(),
+		r:          gin.Default(),
+		dockerCli:  NewDockerClient(),
+		db:         NewDB(),
+		sseChannel: make(chan string, 100),
 	}
 }
 
@@ -82,6 +85,8 @@ func (s *Server) SetUpRoutes() {
 		})
 	})
 
+	s.r.GET("/active/:deploymentid", s.GetOngoingDeployments)
+	s.r.GET("/events", s.SseEvents)
 	s.r.POST("/webhook", s.PostWebHook)
 	s.r.POST("/deploy", s.AuthMiddleware(), s.PostDeploy)
 	s.r.PUT("/env/:deploymentid/:envid", s.AuthMiddleware(), s.PutEnv)

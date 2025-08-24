@@ -22,12 +22,21 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 				"error":  "Bad Authentication",
 			})
 			c.Abort()
-			return
 		}
 
+		ses, err := s.userService.GetSessionByID(sesToken)
+
+		if err != nil {
+			fmt.Println(err)
+			c.JSON(http.StatusForbidden, gin.H{
+				"status": "failiure",
+				"error":  "Bad Authentication",
+			})
+			return
+		}
+		c.Set("session", ses.UserID)
 		c.Next()
 	}
-
 }
 
 func corsMiddleware() gin.HandlerFunc {

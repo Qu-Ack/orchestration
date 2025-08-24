@@ -1,11 +1,36 @@
 package deploy
 
+import (
+	"sync"
+	"time"
+)
+
 const (
 	node   = iota
 	next   = iota
 	react  = iota
 	golang = iota
 )
+
+type DeploymentStatus string
+
+const (
+	StatusIdle      DeploymentStatus = "idle"
+	StatusDeploying DeploymentStatus = "deploying"
+	StatusCompleted DeploymentStatus = "completed"
+	StatusFailed    DeploymentStatus = "failed"
+)
+
+type DeploymentState struct {
+	Status    DeploymentStatus `json:"status"`
+	StartTime time.Time        `json:"start_time"`
+	Message   string           `json:"message"`
+}
+
+type DeploymentStateManager struct {
+	States map[string]*DeploymentState `json:"deployments"`
+	mutex  sync.RWMutex
+}
 
 type DockerTemplateData struct {
 	RepoIdentifier string

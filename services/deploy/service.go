@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -20,6 +21,7 @@ type DeployServiceRepo struct {
 
 type DeployService struct {
 	repo DeployServiceRepo
+	dsm  *DeploymentStateManager
 }
 
 func newDeployServiceRepo(db *sql.DB) *DeployServiceRepo {
@@ -28,9 +30,17 @@ func newDeployServiceRepo(db *sql.DB) *DeployServiceRepo {
 	}
 }
 
+func newDeploymentStateManager() *DeploymentStateManager {
+	return &DeploymentStateManager{
+		mutex:  sync.RWMutex{},
+		States: make(map[string]*DeploymentState),
+	}
+}
+
 func NewDeployService(db *sql.DB) *DeployService {
 	return &DeployService{
 		repo: *newDeployServiceRepo(db),
+		dsm:  newDeploymentStateManager(),
 	}
 }
 
@@ -178,81 +188,88 @@ func (d *DeployService) DeleteEnvVar(deployment *Deployment, env EnvVar) error {
 	return err
 }
 
-func (d *DeployService) Deploy(deployment *Deployment, dockerCli *client.Client, redeploy bool) error {
+func (d *DeployService) Deploy(deployment *Deployment, dockerCli *client.Client, redeploy bool, sse chan string, errsse chan string) error {
 	err := d.GetCodeBase(deployment)
-
 	if err != nil {
 		log.Println("{SERVER}: ERROR IN FETCHING CODEBASE")
 		log.Println(err.Error())
+		sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "codebase clone failed"))
 		return err
 	}
+	sendEvent(sse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "codebase cloned"))
 
 	dockerFileExists := d.FindDockerFile(deployment)
-
 	if redeploy {
 		dockerFileExists = false
 	}
 
 	if dockerFileExists {
 		err := d.BuildImage(deployment)
-
 		if err != nil {
 			log.Println("{SERVER}: ERROR IN BUILDING IMAGE")
 			log.Println(err.Error())
+			sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "docker image build failed"))
 			return err
 		}
+		sendEvent(sse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "docker image built"))
 
 		err = d.ContainerCreate(deployment, dockerCli)
-
 		if err != nil {
 			log.Println("{SERVER}: ERROR IN STARTING CONTAINER")
 			log.Println(err.Error())
+			sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "container creation failed"))
 			return err
 		}
-
-		fmt.Println(fmt.Sprintf("{SERVER}: APPLICATION STARTED ON URL : http://%v.localhost", deployment.SubDomain))
-
+		sendEvent(sse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "deployment successful"))
 		return nil
 	} else {
-
 		service, err := d.ServiceDiscovery(deployment)
-
 		if err != nil {
 			log.Println("{SERVER}: ERROR IN SERVICE DISCOVERY")
 			log.Println(err.Error())
+			sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "service discovery failed"))
 			return err
 		}
+		sendEvent(sse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "service discovered"))
 
 		err = d.CreateDockerFile(deployment, DockerTemplateData{
 			Port:           deployment.Port,
 			RepoIdentifier: deployment.ID,
 			EnvVars:        deployment.EnvVars,
 		}, service)
-
 		if err != nil {
 			log.Println("{SERVER}: ERROR IN CREATING DOCKER FILE")
 			log.Println(err.Error())
+			sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "docker file creation failed"))
 			return err
 		}
+		sendEvent(sse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "docker file created"))
 
 		err = d.BuildImage(deployment)
-
 		if err != nil {
 			log.Println("{SERVER}: ERROR IN BUILDING IMAGE")
 			log.Println(err.Error())
+			sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "docker image build failed"))
 			return err
 		}
+		sendEvent(sse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "docker image built"))
 
 		err = d.ContainerCreate(deployment, dockerCli)
-
 		if err != nil {
 			log.Println("{SERVER}: ERROR IN STARTING CONTAINER")
 			log.Println(err.Error())
+			sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "container creation failed"))
 			return err
 		}
+		sendEvent(sse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "deployment successful"))
+		err = d.DSM_DeleteDeployment(deployment.ID)
 
-		fmt.Println(fmt.Sprintf("{SERVER}: APPLICATION STARTED ON URL : http://%v.localhost", deployment.SubDomain))
-
+		if err != nil {
+			log.Println("{SERVER}: ERROR IN DEL FROM DSM")
+			log.Println(err.Error())
+			sendEvent(errsse, fmt.Sprintf("%s:%s:%s", deployment.ID, deployment.SubDomain, "status update failed"))
+			return err
+		}
 		return nil
 	}
 }

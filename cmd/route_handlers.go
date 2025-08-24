@@ -35,10 +35,11 @@ func (s *Server) PostWebHook(c *gin.Context) {
 					fmt.Printf("Error fetching deployment: %v\n", err)
 					return
 				}
-				if err := s.deployService.Deploy(dep, s.dockerCli, true); err != nil {
-					fmt.Printf("Error deploying: %v\n", err)
-					return
-				}
+				go s.deployService.Deploy(dep, s.dockerCli, true, s.sseChannel, s.errorChannel)
+
+				c.JSON(http.StatusOK, gin.H{
+					"status": "ok",
+				})
 			} else {
 				//				deployment, err := s.deployService.NewDeploymentFromWebhook(json.Repository.Name, json.Repository.CloneUrl, json.Ref)
 				//				if err != nil {
@@ -138,16 +139,13 @@ func (s *Server) PostDeploy(c *gin.Context) {
 
 	}
 
-	fmt.Println("after add deployment")
+	s.deployService.DSM_SetDeploying(deployment.ID)
+	go s.deployService.Deploy(deployment, s.dockerCli, false, s.sseChannel, s.errorChannel)
+	s.deployService.DSM_DeleteDeployment(deployment.ID)
 
-	err = s.deployService.Deploy(deployment, s.dockerCli, false)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
+	c.JSON(http.StatusCreated, gin.H{
+		"status": "ok",
+	})
 }
 
 func (s *Server) PutEnv(c *gin.Context) {
@@ -270,14 +268,15 @@ func (s *Server) REDeploy(c *gin.Context) {
 		})
 	}
 
-	err = s.deployService.Deploy(dep, s.dockerCli, true)
-
+	err = s.deployService.DSM_SetDeploying(dep.ID)
 	if err != nil {
-		log.Println(err)
+		fmt.Println("error in DSM SET DEPLOYING")
+		log.Println(err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Internal Server Error",
 		})
 	}
+	go s.deployService.Deploy(dep, s.dockerCli, true, s.sseChannel, s.errorChannel)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
@@ -481,4 +480,18 @@ func (s *Server) GetContainerLogs(c *gin.Context) {
 		"logs":   logs,
 	})
 
+}
+
+func (s *Server) GetOngoingDeployments(c *gin.Context) {
+	did := c.Params.ByName("deploymentid")
+	state, err := s.deployService.DSM_GetDeploymentState(did)
+
+	if err != nil {
+		c.JSON(204, gin.H{
+			"error": "couldn't find the deployment",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, state)
 }
