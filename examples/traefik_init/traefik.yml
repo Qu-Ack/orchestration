@@ -15,3 +15,14 @@ providers:
     filename: "/etc/traefik/rules.yml"
     watch: true
 
+certificatesResolvers:
+  doresolver:
+    acme:
+      email: dakshsangal@gmail.com
+      storage: /letsencrypt/acme.json
+      dnsChallenge:
+        provider: digitalocean
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
