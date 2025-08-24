@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,10 +16,10 @@ func (s *Server) SseEvents(c *gin.Context) {
 	for {
 		select {
 		case update := <-s.sseChannel:
-			fmt.Fprintf(c.Writer, "update:%s\n\n", update)
+			fmt.Fprintf(c.Writer, "data: update:%s\n\n", update)
 			c.Writer.Flush()
 		case err := <-s.errorChannel:
-			fmt.Fprintf(c.Writer, "error:%s\n\n", err)
+			fmt.Fprintf(c.Writer, "data: error:%s\n\n", err)
 			c.Writer.Flush()
 		case <-c.Request.Context().Done():
 			return
