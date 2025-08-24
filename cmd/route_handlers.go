@@ -35,6 +35,7 @@ func (s *Server) PostWebHook(c *gin.Context) {
 					fmt.Printf("Error fetching deployment: %v\n", err)
 					return
 				}
+				s.deployService.DSM_SetDeploying(dep.ID)
 				go s.deployService.Deploy(dep, s.dockerCli, true, s.sseChannel, s.errorChannel)
 
 				c.JSON(http.StatusOK, gin.H{
@@ -141,7 +142,6 @@ func (s *Server) PostDeploy(c *gin.Context) {
 
 	s.deployService.DSM_SetDeploying(deployment.ID)
 	go s.deployService.Deploy(deployment, s.dockerCli, false, s.sseChannel, s.errorChannel)
-	s.deployService.DSM_DeleteDeployment(deployment.ID)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"status": "ok",
