@@ -40,7 +40,7 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 }
 
 func corsMiddleware() gin.HandlerFunc {
-	originsString := "http://localhost:3000,http://orchestration.localhost,http://orchestration.test,http://orchestration.dakshsangal.live,https://orchestration.dakshsangal.live"
+	originsString := "http://localhost:3000,,http://orchestration.dakshsangal.live,https://orchestration.dakshsangal.live"
 	var allowedOrigins []string
 	if originsString != "" {
 		allowedOrigins = strings.Split(originsString, ",")
