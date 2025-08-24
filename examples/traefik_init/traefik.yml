@@ -16,7 +16,7 @@ providers:
     watch: true
 
 certificatesResolvers:
-  doresolver:
+  letsencrypt:
     acme:
       email: dakshsangal@gmail.com
       storage: /letsencrypt/acme.json
