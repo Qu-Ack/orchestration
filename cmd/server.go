@@ -20,7 +20,7 @@ type cfg struct {
 type Server struct {
 	r             *gin.Engine
 	dockerCli     *client.Client
-	cfg           cfg
+	cfg           *cfg
 	db            *sql.DB
 	deployService *deploy.DeployService
 	userService   *user.UserService
@@ -73,6 +73,7 @@ func NewServer() *Server {
 	return &Server{
 		r:          gin.Default(),
 		dockerCli:  NewDockerClient(),
+		cfg:        &config,
 		db:         NewDB(),
 		sseChannel: make(chan string, 100),
 	}

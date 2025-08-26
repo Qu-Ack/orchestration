@@ -5,13 +5,13 @@ import (
 	"fmt"
 )
 
+var config cfg
+
 func main() {
 
-	var cfg cfg
-
-	flag.StringVar(&cfg.env, "env", "development", "server type")
+	flag.StringVar(&config.env, "env", "development", "server type")
 	flag.Parse()
-	fmt.Printf("started a %s server\n", cfg.env)
+	fmt.Printf("started a %s server\n", config.env)
 
 	server := NewServer()
 	server.InstanitateServerServices()
