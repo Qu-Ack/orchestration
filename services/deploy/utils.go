@@ -64,6 +64,9 @@ func (d *DeployService) CreateDockerFile(deployment *Deployment, data DockerTemp
 	case node:
 		_, err = f.WriteString(ExecuteNodeTemplate(data))
 		return err
+	case next_primsa:
+		_, err = f.WriteString(ExecuteNextPrismaTemplate(data))
+		return err
 	case next:
 		_, err = f.WriteString(ExecuteNextTemplate(data))
 		return err
@@ -88,12 +91,13 @@ func (d *DeployService) BuildImage(deployment *Deployment) error {
 
 func (d *DeployService) ServiceDiscovery(deployment *Deployment) (int, error) {
 	services := map[string]int{
-		"src/index.js":    node,
-		"index.js":        node,
-		"next.config.ts":  next,
-		"next.config.mjs": next,
-		"go.mod":          golang,
-		"vite.config.js":  react,
+		"src/index.js":         node,
+		"index.js":             node,
+		"prisma/schema.prisma": next_primsa,
+		"next.config.ts":       next,
+		"next.config.mjs":      next,
+		"go.mod":               golang,
+		"vite.config.js":       react,
 	}
 
 	for k, v := range services {
@@ -178,17 +182,26 @@ func (d *DeployService) ContainerCreate(deployment *Deployment, dockerCli *clien
 
 	labels := make(map[string]string, 0)
 
-	labels["traefik.enable"] = "true"
-	labels[fmt.Sprintf("traefik.http.routers.%v-web.rule", deployment.SubDomain)] =
-		fmt.Sprintf("Host(`%v.dakshsangal.live`)", deployment.SubDomain)
-	labels[fmt.Sprintf("traefik.http.routers.%v-web.entrypoints", deployment.SubDomain)] = "web"
+	if d.env == "production" {
+		labels["traefik.enable"] = "true"
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.rule", deployment.SubDomain)] =
+			fmt.Sprintf("Host(`%v.dakshsangal.live`)", deployment.SubDomain)
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.entrypoints", deployment.SubDomain)] = "web"
 
-	labels[fmt.Sprintf("traefik.http.routers.%v-websecure.rule", deployment.SubDomain)] =
-		fmt.Sprintf("Host(`%v.dakshsangal.live`)", deployment.SubDomain)
-	labels[fmt.Sprintf("traefik.http.routers.%v-websecure.entrypoints", deployment.SubDomain)] = "websecure"
-	labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls", deployment.SubDomain)] = "true"
-	labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls.certresolver", deployment.SubDomain)] = "letsencrypt"
-	labels["traefik.docker.network"] = "traefik_init_default"
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.rule", deployment.SubDomain)] =
+			fmt.Sprintf("Host(`%v.dakshsangal.live`)", deployment.SubDomain)
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.entrypoints", deployment.SubDomain)] = "websecure"
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls", deployment.SubDomain)] = "true"
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls.certresolver", deployment.SubDomain)] = "letsencrypt"
+		labels["traefik.docker.network"] = "traefik_init_default"
+
+	} else {
+		labels["traefik.enable"] = "true"
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.rule", deployment.SubDomain)] =
+			fmt.Sprintf("Host(`%v.localhost`)", deployment.SubDomain)
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.entrypoints", deployment.SubDomain)] = "web"
+		labels["traefik.docker.network"] = "traefik_init_default"
+	}
 
 	resp, err := dockerCli.ContainerCreate(ctx, &container.Config{
 		Image: fmt.Sprintf("%v-image", deployment.ID),

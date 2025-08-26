@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	node   = iota
-	next   = iota
-	react  = iota
-	golang = iota
+	node = iota
+	next
+	react
+	golang
+	next_primsa
 )
 
 type DeploymentStatus string

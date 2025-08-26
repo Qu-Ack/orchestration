@@ -29,8 +29,26 @@ RUN go build -o app ./cmd
 EXPOSE {{.Port}}
 CMD ["./app"]
 `
+const NextjsTemplate = `
+FROM node:22-alpine
+WORKDIR /app
+# Copy package files
+COPY ./package*.json ./
+{{range .EnvVars}}
+ENV {{.Key}}="{{.Value}}"
+{{end}}
+# Install dependencies
+RUN npm install --prefer-offline --no-audit --progress=false
+# Copy project files
+COPY . ./
+# Build application
+RUN npm run build
+# Expose the Next.js port
+EXPOSE {{.Port}}
+# Start the application
+CMD ["npm", "start"]`
 
-const NextjsDockerFileTemplate = `
+const NextjsPrismaTemplate = `
 FROM node:22-alpine
 WORKDIR /app
 # Copy package files
@@ -87,8 +105,18 @@ CMD ["serve", "-s", "dist", "-l", "{{.Port}}"]
 
 var ViteReactFile = template.Must(template.New("").Parse(ViteReactDockerFileTemplate))
 var NodeDockerFile = template.Must(template.New("").Parse(NodeDockerFileTemplate))
-var NextDockerFile = template.Must(template.New("").Parse(NextjsDockerFileTemplate))
+var NextDockerFile = template.Must(template.New("").Parse(NextjsTemplate))
+var NextPrismaDockerFile = template.Must(template.New("").Parse(NextjsPrismaTemplate))
 var GoDockerFile = template.Must(template.New("").Parse(GoDockerFileTemplate))
+
+func ExecuteNextPrismaTemplate(data DockerTemplateData) string {
+	buf := bytes.Buffer{}
+	if err := NextPrismaDockerFile.Execute(&buf, data); err != nil {
+		fmt.Println("Error", err)
+		return ""
+	}
+	return buf.String()
+}
 
 func ExecuteNodeTemplate(data DockerTemplateData) string {
 

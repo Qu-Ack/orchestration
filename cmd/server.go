@@ -13,9 +13,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type cfg struct {
+	env string
+}
+
 type Server struct {
 	r             *gin.Engine
 	dockerCli     *client.Client
+	cfg           cfg
 	db            *sql.DB
 	deployService *deploy.DeployService
 	userService   *user.UserService
@@ -74,7 +79,7 @@ func NewServer() *Server {
 }
 
 func (s *Server) InstanitateServerServices() {
-	s.deployService = deploy.NewDeployService(s.db)
+	s.deployService = deploy.NewDeployService(s.db, s.cfg.env)
 	s.userService = user.NewUserService(s.db)
 }
 

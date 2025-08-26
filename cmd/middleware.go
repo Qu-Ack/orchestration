@@ -39,8 +39,14 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func corsMiddleware() gin.HandlerFunc {
-	originsString := "http://localhost:3000,,http://orchestration.dakshsangal.live,https://orchestration.dakshsangal.live"
+func (s *Server) corsMiddleware() gin.HandlerFunc {
+
+	var originsString string
+	if s.cfg.env == "production" {
+		originsString = "http://localhost:3000,http://orchestration.dakshsangal.live,https://orchestration.dakshsangal.live"
+	} else {
+		originsString = "http://localhost:3000,http://orchestration.localhost"
+	}
 	var allowedOrigins []string
 	if originsString != "" {
 		allowedOrigins = strings.Split(originsString, ",")

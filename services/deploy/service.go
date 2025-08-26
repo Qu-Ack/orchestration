@@ -22,6 +22,7 @@ type DeployServiceRepo struct {
 type DeployService struct {
 	repo DeployServiceRepo
 	dsm  *DeploymentStateManager
+	env  string
 }
 
 func newDeployServiceRepo(db *sql.DB) *DeployServiceRepo {
@@ -37,9 +38,10 @@ func newDeploymentStateManager() *DeploymentStateManager {
 	}
 }
 
-func NewDeployService(db *sql.DB) *DeployService {
+func NewDeployService(db *sql.DB, env string) *DeployService {
 	return &DeployService{
 		repo: *newDeployServiceRepo(db),
+		env:  env,
 		dsm:  newDeploymentStateManager(),
 	}
 }

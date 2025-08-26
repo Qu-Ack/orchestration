@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/rules.yml"
+      - "--providers.file.watch=true"
+      - "--api.insecure=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik.yml:/etc/traefik/traefik.yml"
+      - "./rules.yml:/etc/traefik/rules.yml"
+      - "./letsencrypt:/letsencrypt"
+    environment:
+      - DO_AUTH_TOKEN=${DO_AUTH_TOKEN}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - traefik_init_default   
+
+networks:
+  traefik_init_default:
+    external: true 
+
