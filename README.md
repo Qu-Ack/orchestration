@@ -41,3 +41,9 @@ to run the containerized postgres-database
 
 3.the datbase connection string `postgresql://postgres:postgres@my-postgres:5432/{YOUR DATABASE NAME}` 
 
+
+
+# TODO 
+
+
+- [] MUTLIPLE INSTANCES OF A SERVICE FEAT
