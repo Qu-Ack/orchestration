@@ -8,12 +8,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/docker/client"
 	"github.com/go-redis/redis"
 	"gopkg.in/yaml.v3"
 )
 
 type service struct {
-	repo struct {
+	dockerCli *client.Client
+	env       string
+	repo      struct {
 		db    *sql.DB
 		redis *redis.Client
 	}
@@ -25,18 +28,15 @@ func NEW() *service {
 
 func (s *service) NEW_DEPLOYMENT(deployment *Deployment_New) error {
 
+	// validate if needed
+	// add to db
+
 	switch deployment.Type {
 	case DEP_DOCKER_COMPOSE:
 		break
 	default:
 		for _, service := range deployment.Services {
-			clonePath := s.getClonePath(service.ServiceID)
-			err := s.gitClone(service.CodeRepo, clonePath)
-
-			if err != nil {
-				return err
-			}
-
+			s.DeployService(&service)
 		}
 
 	}
@@ -84,6 +84,11 @@ func (s *service) DeployService(serv *Service) error {
 			return err
 		}
 
+		err = s.StartDockerContainer(serv)
+
+		if err != nil {
+			return err
+		}
 		break
 	case SER_NEXT:
 		break

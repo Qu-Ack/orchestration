@@ -2,12 +2,17 @@ package deploy
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/go-connections/nat"
 )
 
 func (s *service) findFile(filePath string) error {
@@ -90,4 +95,64 @@ func (s *service) buildDockerImage(dockerFilePath string, imgtag string) error {
 
 	return nil
 
+}
+
+func (s *service) getLabelsForContainers(serv *Service) map[string]string {
+	labels := make(map[string]string, 0)
+
+	if s.env == "production" {
+		labels["traefik.enable"] = "true"
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.rule", serv.Domain)] =
+			fmt.Sprintf("Host(`%v.dakshsangal.live`)", serv.Domain)
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.entrypoints", serv.Domain)] = "web"
+
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.rule", serv.Domain)] =
+			fmt.Sprintf("Host(`%v.dakshsangal.live`)", serv.Domain)
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.entrypoints", serv.Domain)] = "websecure"
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls", serv.Domain)] = "true"
+		labels[fmt.Sprintf("traefik.http.routers.%v-websecure.tls.certresolver", serv.Domain)] = "letsencrypt"
+		labels["traefik.docker.network"] = "traefik_init_default"
+
+	} else {
+		labels["traefik.enable"] = "true"
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.rule", serv.Domain)] =
+			fmt.Sprintf("Host(`%v.localhost`)", serv.Domain)
+		labels[fmt.Sprintf("traefik.http.routers.%v-web.entrypoints", serv.Domain)] = "web"
+		labels["traefik.docker.network"] = "traefik_init_default"
+	}
+
+	return labels
+}
+
+func (s *service) StartDockerContainer(serv *Service) error {
+
+	containerLabels := s.getLabelsForContainers(serv)
+
+	imageName := fmt.Sprintf("%v-%v", serv.ServiceID, serv.Domain)
+	resp, err := s.dockerCli.ContainerCreate(context.Background(), &container.Config{
+		Image: imageName,
+		ExposedPorts: nat.PortSet{
+			nat.Port(fmt.Sprintf("%v/tcp", serv.Port)): struct{}{},
+		},
+		Labels: containerLabels,
+	}, &container.HostConfig{
+		RestartPolicy: container.RestartPolicy{Name: "unless-stopped"},
+	}, &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			"db-network":           {},
+			"traefik_init_default": {},
+		},
+	}, nil, serv.ServiceID)
+
+	if err != nil {
+		return err
+	}
+
+	if err := s.dockerCli.ContainerStart(context.Background(), resp.ID, container.StartOptions{}); err != nil {
+		return err
+	}
+
+	serv.containerId = resp.ID
+	serv.logFilePath = fmt.Sprintf("/var/log/%s.log", serv.ServiceID)
+	return nil
 }
