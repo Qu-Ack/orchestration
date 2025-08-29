@@ -6,6 +6,8 @@ const (
 	DEP_DOCKER_COMPOSE DEP = iota
 	DEP_DOCKER_FILE
 	DEP_NEXT
+	DEP_VITE_HTML
+	DEP_VITE_REACT
 	DEP_REACT
 	DEP_GO
 	DEP_NODE
@@ -15,10 +17,46 @@ const (
 type Status int
 
 const (
-	STATUS_PENDING = iota
+	STATUS_PENDING Status = iota
 	STATUS_FAILED
 	STATUS_SUCCESS
 )
+
+type User_Deployment int
+
+const (
+	USER_DEP_DOCKER_COMPOSE User_Deployment = iota
+	USER_DEP_DOCKER
+	USER_DEP_GO
+	USER_DEP_NEXT
+	USER_DEP_PRISMA_NEXT
+	USER_DEP_VITE_HTML
+	USER_DEP_VITE_REACT
+	USER_DEP_NODE
+)
+
+func (u User_Deployment) String() string {
+	switch u {
+	case USER_DEP_DOCKER_COMPOSE:
+		return "docker_compose"
+	case USER_DEP_DOCKER:
+		return "docker"
+	case USER_DEP_GO:
+		return "go"
+	case USER_DEP_NEXT:
+		return "next"
+	case USER_DEP_PRISMA_NEXT:
+		return "prisma_next"
+	case USER_DEP_VITE_HTML:
+		return "vite_html"
+	case USER_DEP_VITE_REACT:
+		return "vite_react"
+	case USER_DEP_NODE:
+		return "node"
+	default:
+		return "unknown"
+	}
+}
 
 type SERVICE int
 
@@ -31,6 +69,8 @@ const (
 	SER_POSTGRES
 	SER_REDIS
 	SER_NGINX
+	SER_VITE_HTML
+	SER_VITE_REACT
 )
 
 type Service struct {
@@ -60,4 +100,13 @@ type EnvVar_New struct {
 }
 
 type User_Deployment_Request struct {
+	Repo     string          `json:"repo"`
+	Type     User_Deployment `json:"type"`
+	FilePath string          `json:"file_path"`
+}
+
+type User_Validation_response struct {
+	Status     string         `json:"status"`
+	Type       string         `json:"type"`
+	Identified map[string]any `json:"identified"`
 }

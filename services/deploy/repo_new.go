@@ -2,10 +2,13 @@ package deploy
 
 import (
 	"database/sql"
+
+	"github.com/go-redis/redis"
 )
 
 type repo struct {
-	db *sql.DB
+	db    *sql.DB
+	redis *redis.Client
 }
 
 func (r *repo) NEW_DEPLOYMENT() {
