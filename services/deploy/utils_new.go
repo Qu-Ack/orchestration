@@ -74,3 +74,20 @@ func (s *service) getClonePath(id string) string {
 func (s *service) getCacheKey(id string, userid string) string {
 	return fmt.Sprintf("deployment:%s:%s", id, userid)
 }
+
+func (s *service) buildDockerImage(dockerFilePath string, imgtag string) error {
+	var stderr, stdout bytes.Buffer
+
+	cmd := exec.Command("docker", "build", "-t", imgtag, dockerFilePath)
+	cmd.Dir = dockerFilePath
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("docker image build failed %v: stderr: %v", err, stderr.String())
+	}
+
+	return nil
+
+}

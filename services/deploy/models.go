@@ -51,11 +51,6 @@ type Deployment struct {
 	Port        int
 }
 
-type EnvVar struct {
-	Key   string
-	Value string
-}
-
 type ContainerStats struct {
 	CPUUsage    float64 `json:"cpuUsage"`
 	MemoryUsage int64   `json:"memoryUsage"`

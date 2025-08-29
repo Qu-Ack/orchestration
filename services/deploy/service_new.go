@@ -23,28 +23,79 @@ func NEW() *service {
 	return &service{}
 }
 
-func (s *service) NEW_DEPLOYMENT(userDeploymentRequest *User_Deployment_Request) {
-	switch userDeploymentRequest.Type {
-	case USER_DEP_DOCKER_COMPOSE:
-		break
+func (s *service) NEW_DEPLOYMENT(deployment *Deployment_New) error {
 
-	case USER_DEP_DOCKER:
+	switch deployment.Type {
+	case DEP_DOCKER_COMPOSE:
 		break
+	default:
+		for _, service := range deployment.Services {
+			clonePath := s.getClonePath(service.ServiceID)
+			err := s.gitClone(service.CodeRepo, clonePath)
 
-	case USER_DEP_GO:
-		break
+			if err != nil {
+				return err
+			}
 
-	case USER_DEP_NEXT:
-		break
-
-	case USER_DEP_NODE:
-		break
-
-	case USER_DEP_PRISMA_NEXT:
-		break
+		}
 
 	}
 
+	return nil
+
+}
+
+func (s *service) DeployService(serv *Service) error {
+	switch serv.ServiceType {
+	case SER_NODE:
+		err := s.gitClone(serv.CodeRepo, serv.ClonePath)
+
+		if err != nil {
+			return err
+		}
+
+		dockerFilePath := filepath.Join(serv.ClonePath, "Dockerfile")
+
+		err = s.findFile(dockerFilePath)
+
+		if err != nil {
+			return err
+		}
+
+		dockerFile, err := os.Create(dockerFilePath)
+
+		if err != nil {
+			return err
+		}
+
+		_, err = dockerFile.WriteString(ExecuteNodeTemplate(DockerTemplateData{
+			RepoIdentifier: serv.ServiceID,
+			Port:           serv.Port,
+			EnvVars:        serv.EnvVars,
+		}))
+
+		if err != nil {
+			return err
+		}
+
+		err = s.buildDockerImage(serv.ClonePath, fmt.Sprintf("%v-%v", serv.ServiceID, serv.Domain))
+
+		if err != nil {
+			return err
+		}
+
+		break
+	case SER_NEXT:
+		break
+	case SER_NEXT_PRISMA:
+		break
+	case SER_GO:
+		break
+	case SER_DOCKER:
+		break
+	default:
+		return fmt.Errorf("Invalid service type")
+	}
 }
 
 func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Validation_response, error) {
@@ -76,7 +127,6 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 			ID:     randId,
 			UserID: req.UserID,
 			Name:   req.Name,
-			Type:   DEP_NEXT,
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
@@ -147,7 +197,6 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 			UserID: req.UserID,
 			ID:     randId,
 			Name:   req.Name,
-			Type:   DEP_GO,
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
@@ -183,7 +232,6 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 			ID:     randId,
 			Name:   req.Name,
 			UserID: req.UserID,
-			Type:   DEP_NODE,
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
@@ -219,7 +267,6 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 			ID:     randId,
 			UserID: req.UserID,
 			Name:   req.Name,
-			Type:   DEP_NEXT_PRISMA,
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{

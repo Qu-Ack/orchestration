@@ -74,8 +74,10 @@ const (
 )
 
 type Service struct {
+	ServiceID      string   `json:"service_id"`
 	CodeRepo       string   `json:"code_repo"`
 	CodeRepoBranch string   `json:"code_repo_branch"`
+	ClonePath      string   `json:"clone_path"`
 	Name           string   `json:"name"`
 	ServiceType    SERVICE  `json:"service_type"`
 	Port           int      `json:"port"`
@@ -95,7 +97,7 @@ type Deployment_New struct {
 	Services []Service `json:"services"`
 }
 
-type EnvVar_New struct {
+type EnvVar struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
