@@ -67,6 +67,10 @@ func (s *service) getRandomString(length int) string {
 	return randomStringWithCharMap(length, charMap)
 }
 
-func (s *service) getClonePath() string {
-	return fmt.Sprintf("/projects/%v", s.getRandomString(6))
+func (s *service) getClonePath(id string) string {
+	return fmt.Sprintf("/projects/%v", id)
+}
+
+func (s *service) getCacheKey(id string, userid string) string {
+	return fmt.Sprintf("deployment:%s:%s", id, userid)
 }

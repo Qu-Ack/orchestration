@@ -1,24 +1,93 @@
 package deploy
 
 import (
-	"database/sql"
+	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/go-redis/redis"
 )
 
-type repo struct {
-	db    *sql.DB
-	redis *redis.Client
+const cacheTTL = 24 * time.Hour
+
+func (s *service) cacheDeployment(dep *Deployment_New) error {
+	if dep == nil || dep.ID == "" {
+		return fmt.Errorf("invalid deployment: missing ID")
+	}
+
+	key := s.getCacheKey(dep.ID, dep.UserID)
+
+	data, err := json.Marshal(dep)
+	if err != nil {
+		return fmt.Errorf("failed to marshal deployment: %w", err)
+	}
+
+	err = s.repo.redis.Set(key, data, cacheTTL).Err()
+	if err != nil {
+		return fmt.Errorf("failed to cache deployment: %w", err)
+	}
+
+	return nil
 }
 
-func (r *repo) NEW_DEPLOYMENT() {
+func (s *service) getCachedDeployment(id string, userid string) (*Deployment_New, error) {
+	key := s.getCacheKey(id, userid)
 
+	val, err := s.repo.redis.Get(key).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to get deployment from cache: %w", err)
+	}
+
+	var dep Deployment_New
+	if err := json.Unmarshal(val, &dep); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal cached deployment: %w", err)
+	}
+
+	return &dep, nil
 }
 
-func (r *repo) NEW_SERVICE() {
+func (s *service) getAllCachedDeploymentsOfUser(userid string) ([]*Deployment_New, error) {
+	var deployments []*Deployment_New
 
+	pattern := fmt.Sprintf("deployment:*:%s", userid)
+
+	iter := s.repo.redis.Scan(0, pattern, 0).Iterator()
+	for iter.Next() {
+		key := iter.Val()
+
+		data, err := s.repo.redis.Get(key).Bytes()
+		if err != nil {
+			if err == redis.Nil {
+				continue
+			}
+			return nil, err
+		}
+
+		dep := new(Deployment_New)
+		if err := json.Unmarshal(data, dep); err != nil {
+			return nil, err
+		}
+
+		if dep.Status == STATUS_PENDING {
+			deployments = append(deployments, dep)
+		}
+	}
+
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+
+	return deployments, nil
 }
 
-func (r *repo) NEW_ENV_VAR() {
+func (s *service) deleteCachedDeployment(id string, userid string) error {
+	key := s.getCacheKey(id, userid)
 
+	if err := s.repo.redis.Del(key).Err(); err != nil {
+		return fmt.Errorf("failed to delete cached deployment: %w", err)
+	}
+
+	return nil
 }

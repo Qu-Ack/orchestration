@@ -1,16 +1,22 @@
 package deploy
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
 
+	"github.com/go-redis/redis"
 	"gopkg.in/yaml.v3"
 )
 
 type service struct {
+	repo struct {
+		db    *sql.DB
+		redis *redis.Client
+	}
 }
 
 func NEW() *service {
@@ -42,7 +48,8 @@ func (s *service) NEW_DEPLOYMENT(userDeploymentRequest *User_Deployment_Request)
 }
 
 func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Validation_response, error) {
-	clonePath := s.getClonePath()
+	randId := s.getRandomString(6)
+	clonePath := s.getClonePath(randId)
 
 	if err := s.gitClone(req.Repo, clonePath); err != nil {
 		return nil, err
@@ -62,6 +69,26 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 		matches, _ := filepath.Glob(filepath.Join(clonePath, "next.config.*"))
 		if len(matches) == 0 {
 			return nil, errors.New("next.config file not found")
+
+		}
+
+		deployment := &Deployment_New{
+			ID:     randId,
+			UserID: req.UserID,
+			Name:   req.Name,
+			Type:   DEP_NEXT,
+			Status: STATUS_PENDING,
+			Services: []Service{
+				{
+					CodeRepo:       req.Repo,
+					CodeRepoBranch: req.RepoBranch,
+				},
+			},
+		}
+		err := s.cacheDeployment(deployment)
+
+		if err != nil {
+			return nil, err
 		}
 
 		return &User_Validation_response{
@@ -71,12 +98,33 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 				"config":   filepath.Base(matches[0]),
 				"filepath": req.FilePath,
 			},
+			Deployment: deployment,
 		}, nil
 
 	case USER_DEP_DOCKER:
 		dockerfile := filepath.Join(clonePath, "Dockerfile")
 		if err := s.findFile(dockerfile); err != nil {
 			return nil, errors.New("Dockerfile not found")
+		}
+
+		deployment := &Deployment_New{
+			ID:     randId,
+			UserID: req.UserID,
+			Name:   req.Name,
+			Type:   DEP_DOCKER_FILE,
+			Status: STATUS_PENDING,
+			Services: []Service{
+				{
+					CodeRepo:       req.Repo,
+					CodeRepoBranch: req.RepoBranch,
+				},
+			},
+		}
+
+		err := s.cacheDeployment(deployment)
+
+		if err != nil {
+			return nil, err
 		}
 
 		return &User_Validation_response{
@@ -86,12 +134,33 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 				"dockerfile": dockerfile,
 				"filepath":   req.FilePath,
 			},
+			Deployment: deployment,
 		}, nil
 
 	case USER_DEP_GO:
 		gomod := filepath.Join(clonePath, "go.mod")
 		if err := s.findFile(gomod); err != nil {
 			return nil, errors.New("go.mod not found")
+		}
+
+		deployment := &Deployment_New{
+			UserID: req.UserID,
+			ID:     randId,
+			Name:   req.Name,
+			Type:   DEP_GO,
+			Status: STATUS_PENDING,
+			Services: []Service{
+				{
+					CodeRepo:       req.Repo,
+					CodeRepoBranch: req.RepoBranch,
+				},
+			},
+		}
+
+		err := s.cacheDeployment(deployment)
+
+		if err != nil {
+			return nil, err
 		}
 
 		return &User_Validation_response{
@@ -101,12 +170,33 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 				"go_mod":   gomod,
 				"filepath": req.FilePath,
 			},
+			Deployment: deployment,
 		}, nil
 
 	case USER_DEP_NODE:
 		pkg := filepath.Join(clonePath, "package.json")
 		if err := s.findFile(pkg); err != nil {
 			return nil, errors.New("package.json not found")
+		}
+
+		deployment := &Deployment_New{
+			ID:     randId,
+			Name:   req.Name,
+			UserID: req.UserID,
+			Type:   DEP_NODE,
+			Status: STATUS_PENDING,
+			Services: []Service{
+				{
+					CodeRepo:       req.Repo,
+					CodeRepoBranch: req.RepoBranch,
+				},
+			},
+		}
+
+		err := s.cacheDeployment(deployment)
+
+		if err != nil {
+			return nil, err
 		}
 
 		return &User_Validation_response{
@@ -116,12 +206,33 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 				"package_json": pkg,
 				"filepath":     req.FilePath,
 			},
+			Deployment: deployment,
 		}, nil
 
 	case USER_DEP_PRISMA_NEXT:
 		prisma := filepath.Join(clonePath, "prisma", "schema.prisma")
 		if err := s.findFile(prisma); err != nil {
 			return nil, errors.New("prisma/schema.prisma not found")
+		}
+
+		deployment := &Deployment_New{
+			ID:     randId,
+			UserID: req.UserID,
+			Name:   req.Name,
+			Type:   DEP_NEXT_PRISMA,
+			Status: STATUS_PENDING,
+			Services: []Service{
+				{
+					CodeRepo:       req.Repo,
+					CodeRepoBranch: req.RepoBranch,
+				},
+			},
+		}
+
+		err := s.cacheDeployment(deployment)
+
+		if err != nil {
+			return nil, err
 		}
 
 		return &User_Validation_response{
@@ -131,6 +242,7 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 				"schema":   prisma,
 				"filepath": req.FilePath,
 			},
+			Deployment: deployment,
 		}, nil
 
 	case USER_DEP_DOCKER_COMPOSE:
@@ -151,6 +263,29 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 			return nil, fmt.Errorf("failed to parse docker-compose.yml: %w", err)
 		}
 
+		var services []Service
+		for serviceName := range compose.Services {
+			services = append(services, Service{
+				Name:           serviceName,
+				CodeRepo:       req.Repo,
+				CodeRepoBranch: req.RepoBranch,
+			})
+		}
+
+		deployment := &Deployment_New{
+			ID:       randId,
+			Name:     req.Name,
+			UserID:   req.UserID,
+			Type:     DEP_DOCKER_COMPOSE,
+			Status:   STATUS_PENDING,
+			Services: services,
+		}
+
+		err = s.cacheDeployment(deployment)
+		if err != nil {
+			return nil, err
+		}
+
 		return &User_Validation_response{
 			Status: "ok",
 			Type:   req.Type.String(),
@@ -159,11 +294,22 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 				"filepath":       req.FilePath,
 				"services":       maps.Keys(compose.Services),
 			},
+			Deployment: deployment,
 		}, nil
-
 	default:
 		return nil, errors.New("invalid user Deployment Request type")
 	}
+}
+
+func (s *service) GET_PENDING_DEPLOYMENTS(userid string) ([]*Deployment_New, error) {
+
+	deployments, err := s.getAllCachedDeploymentsOfUser(userid)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return deployments, nil
 }
 
 func (s *service) NEW_SERVICE() {

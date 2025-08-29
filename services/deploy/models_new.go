@@ -87,6 +87,7 @@ type Service struct {
 }
 
 type Deployment_New struct {
+	UserID   string    `json:"userid"`
 	ID       string    `json:"id"`
 	Name     string    `json:"name"`
 	Type     DEP       `json:"type"`
@@ -100,13 +101,17 @@ type EnvVar_New struct {
 }
 
 type User_Deployment_Request struct {
-	Repo     string          `json:"repo"`
-	Type     User_Deployment `json:"type"`
-	FilePath string          `json:"file_path"`
+	UserID     string          `json:"userid"`
+	Repo       string          `json:"repo"`
+	RepoBranch string          `json:"branch"`
+	Type       User_Deployment `json:"type"`
+	FilePath   string          `json:"file_path"`
+	Name       string          `json:"name"`
 }
 
 type User_Validation_response struct {
-	Status     string         `json:"status"`
-	Type       string         `json:"type"`
-	Identified map[string]any `json:"identified"`
+	Status     string          `json:"status"`
+	Type       string          `json:"type"`
+	Identified map[string]any  `json:"identified"`
+	Deployment *Deployment_New `json:"deployment"`
 }
