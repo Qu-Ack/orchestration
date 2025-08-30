@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -494,4 +495,68 @@ func (s *Server) GetOngoingDeployments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, state)
+}
+
+func (s *Server) ValidateDeployment(c *gin.Context) {
+
+	var req deploy.User_Deployment_Request
+
+	decoder := json.NewDecoder(c.Request.Body)
+
+	defer c.Request.Body.Close()
+	err := decoder.Decode(&req)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "couldn't read request body",
+		})
+		return
+	}
+
+	// temp
+	req.UserID = "123456"
+
+	resp, err := s.deployServicev2.ValidateDeployment(&req)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, resp)
+}
+
+func (s *Server) ConfirmDeployment(c *gin.Context) {
+	var req deploy.Deployment_New
+
+	decoder := json.NewDecoder(c.Request.Body)
+	defer c.Request.Body.Close()
+
+	err := decoder.Decode(&req)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "couldn't read request body",
+		})
+		return
+	}
+
+	// temp
+	req.UserID = "123456"
+
+	err = s.deployServicev2.NEW_DEPLOYMENT(&req)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"status":  "ok",
+		"message": "deployment queued",
+	})
 }

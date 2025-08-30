@@ -13,7 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type service struct {
+type Dservice struct {
 	dockerCli *client.Client
 	env       string
 	repo      struct {
@@ -22,11 +22,18 @@ type service struct {
 	}
 }
 
-func NEW() *service {
-	return &service{}
+func NEW(dockerClie *client.Client, env string, db *sql.DB, r *redis.Client) *Dservice {
+	return &Dservice{
+		dockerCli: dockerClie,
+		env:       env,
+		repo: struct {
+			db    *sql.DB
+			redis *redis.Client
+		}{db: db, redis: r},
+	}
 }
 
-func (s *service) NEW_DEPLOYMENT(deployment *Deployment_New) error {
+func (s *Dservice) NEW_DEPLOYMENT(deployment *Deployment_New) error {
 
 	for _, service := range deployment.Services {
 		go s.DeployService(&service)
@@ -36,7 +43,7 @@ func (s *service) NEW_DEPLOYMENT(deployment *Deployment_New) error {
 
 }
 
-func (s *service) WriteDockerFile(dockerfile *os.File, serv *Service) error {
+func (s *Dservice) WriteDockerFile(dockerfile *os.File, serv *Service) error {
 	switch serv.ServiceType {
 	case SER_NODE:
 		_, err := dockerfile.WriteString(ExecuteNodeTemplate(DockerTemplateData{
@@ -80,7 +87,7 @@ func (s *service) WriteDockerFile(dockerfile *os.File, serv *Service) error {
 	}
 }
 
-func (s *service) DeployService(serv *Service) error {
+func (s *Dservice) DeployService(serv *Service) error {
 	err := s.gitClone(serv.CodeRepo, serv.ClonePath)
 
 	if err != nil {
@@ -122,7 +129,7 @@ func (s *service) DeployService(serv *Service) error {
 	return nil
 }
 
-func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Validation_response, error) {
+func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Validation_response, error) {
 	randId := s.getRandomString(6)
 	clonePath := s.getClonePath(randId)
 
@@ -372,7 +379,7 @@ func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Valida
 	}
 }
 
-func (s *service) GET_PENDING_DEPLOYMENTS(userid string) ([]*Deployment_New, error) {
+func (s *Dservice) GET_PENDING_DEPLOYMENTS(userid string) ([]*Deployment_New, error) {
 
 	deployments, err := s.getAllCachedDeploymentsOfUser(userid)
 
@@ -383,5 +390,5 @@ func (s *service) GET_PENDING_DEPLOYMENTS(userid string) ([]*Deployment_New, err
 	return deployments, nil
 }
 
-func (s *service) NEW_SERVICE() {
+func (s *Dservice) NEW_SERVICE() {
 }

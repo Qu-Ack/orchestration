@@ -10,6 +10,7 @@ import (
 	"github.com/Qu-Ack/orchestration/services/user"
 	"github.com/docker/docker/client"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	_ "github.com/lib/pq"
 )
 
@@ -18,14 +19,16 @@ type cfg struct {
 }
 
 type Server struct {
-	r             *gin.Engine
-	dockerCli     *client.Client
-	cfg           *cfg
-	db            *sql.DB
-	deployService *deploy.DeployService
-	userService   *user.UserService
-	sseChannel    chan string
-	errorChannel  chan string
+	r               *gin.Engine
+	dockerCli       *client.Client
+	cfg             *cfg
+	redisCli        *redis.Client
+	db              *sql.DB
+	deployService   *deploy.DeployService
+	userService     *user.UserService
+	deployServicev2 *deploy.Dservice
+	sseChannel      chan string
+	errorChannel    chan string
 }
 
 func NewDockerClient() *client.Client {
@@ -69,10 +72,21 @@ func (s *Server) ServerCleanUp() {
 	s.db.Close()
 }
 
+func NewRedisClient() *redis.Client {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	return client
+}
+
 func NewServer() *Server {
 	return &Server{
 		r:          gin.Default(),
 		dockerCli:  NewDockerClient(),
+		redisCli:   NewRedisClient(),
 		cfg:        &config,
 		db:         NewDB(),
 		sseChannel: make(chan string, 100),
@@ -81,6 +95,7 @@ func NewServer() *Server {
 
 func (s *Server) InstanitateServerServices() {
 	s.deployService = deploy.NewDeployService(s.db, s.cfg.env)
+	s.deployServicev2 = deploy.NEW(s.dockerCli, s.cfg.env, s.db, s.redisCli)
 	s.userService = user.NewUserService(s.db)
 }
 
@@ -105,4 +120,7 @@ func (s *Server) SetUpRoutes() {
 	s.r.GET("/deployment/:deploymentid", s.AuthMiddleware(), s.GetDeployment)
 	s.r.GET("/deployment/:deploymentid/stats", s.AuthMiddleware(), s.GetContainerStats)
 	s.r.GET("/deployment/:deploymentid/logs", s.AuthMiddleware(), s.GetContainerLogs)
+	s.r.POST("/v2/deployment/validate", s.ValidateDeployment)
+	s.r.POST("/v2/deployment/confirm", s.ConfirmDeployment)
+
 }

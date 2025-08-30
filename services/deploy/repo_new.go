@@ -10,7 +10,7 @@ import (
 
 const cacheTTL = 24 * time.Hour
 
-func (s *service) cacheDeployment(dep *Deployment_New) error {
+func (s *Dservice) cacheDeployment(dep *Deployment_New) error {
 	if dep == nil || dep.ID == "" {
 		return fmt.Errorf("invalid deployment: missing ID")
 	}
@@ -30,7 +30,7 @@ func (s *service) cacheDeployment(dep *Deployment_New) error {
 	return nil
 }
 
-func (s *service) getCachedDeployment(id string, userid string) (*Deployment_New, error) {
+func (s *Dservice) getCachedDeployment(id string, userid string) (*Deployment_New, error) {
 	key := s.getCacheKey(id, userid)
 
 	val, err := s.repo.redis.Get(key).Bytes()
@@ -48,7 +48,7 @@ func (s *service) getCachedDeployment(id string, userid string) (*Deployment_New
 	return &dep, nil
 }
 
-func (s *service) getAllCachedDeploymentsOfUser(userid string) ([]*Deployment_New, error) {
+func (s *Dservice) getAllCachedDeploymentsOfUser(userid string) ([]*Deployment_New, error) {
 	var deployments []*Deployment_New
 
 	pattern := fmt.Sprintf("deployment:*:%s", userid)
@@ -82,7 +82,7 @@ func (s *service) getAllCachedDeploymentsOfUser(userid string) ([]*Deployment_Ne
 	return deployments, nil
 }
 
-func (s *service) deleteCachedDeployment(id string, userid string) error {
+func (s *Dservice) deleteCachedDeployment(id string, userid string) error {
 	key := s.getCacheKey(id, userid)
 
 	if err := s.repo.redis.Del(key).Err(); err != nil {

@@ -15,7 +15,7 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
-func (s *service) findFile(filePath string) error {
+func (s *Dservice) findFile(filePath string) error {
 	_, err := os.Stat(filePath)
 
 	if err != nil {
@@ -28,7 +28,7 @@ func (s *service) findFile(filePath string) error {
 	return err
 }
 
-func (s *service) gitClone(repo string, clonePath string) error {
+func (s *Dservice) gitClone(repo string, clonePath string) error {
 	var stderr, stdout bytes.Buffer
 
 	if err := os.MkdirAll(clonePath, 0755); err != nil {
@@ -48,7 +48,7 @@ func (s *service) gitClone(repo string, clonePath string) error {
 	return nil
 }
 
-func (s *service) removeDir(dirPath string) error {
+func (s *Dservice) removeDir(dirPath string) error {
 	err := os.RemoveAll(dirPath)
 	if err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", dirPath, err)
@@ -68,19 +68,19 @@ func randomStringWithCharMap(length int, charset string) string {
 	return string(b)
 }
 
-func (s *service) getRandomString(length int) string {
+func (s *Dservice) getRandomString(length int) string {
 	return randomStringWithCharMap(length, charMap)
 }
 
-func (s *service) getClonePath(id string) string {
+func (s *Dservice) getClonePath(id string) string {
 	return fmt.Sprintf("/projects/%v", id)
 }
 
-func (s *service) getCacheKey(id string, userid string) string {
+func (s *Dservice) getCacheKey(id string, userid string) string {
 	return fmt.Sprintf("deployment:%s:%s", id, userid)
 }
 
-func (s *service) buildDockerImage(dockerFilePath string, imgtag string) error {
+func (s *Dservice) buildDockerImage(dockerFilePath string, imgtag string) error {
 	var stderr, stdout bytes.Buffer
 
 	cmd := exec.Command("docker", "build", "-t", imgtag, dockerFilePath)
@@ -97,7 +97,7 @@ func (s *service) buildDockerImage(dockerFilePath string, imgtag string) error {
 
 }
 
-func (s *service) getLabelsForContainers(serv *Service) map[string]string {
+func (s *Dservice) getLabelsForContainers(serv *Service) map[string]string {
 	labels := make(map[string]string, 0)
 
 	if s.env == "production" {
@@ -124,7 +124,7 @@ func (s *service) getLabelsForContainers(serv *Service) map[string]string {
 	return labels
 }
 
-func (s *service) StartDockerContainer(serv *Service) error {
+func (s *Dservice) StartDockerContainer(serv *Service) error {
 
 	containerLabels := s.getLabelsForContainers(serv)
 

@@ -89,7 +89,7 @@ type Service struct {
 }
 
 type Deployment_New struct {
-	UserID   string    `json:"userid"`
+	UserID   string
 	ID       string    `json:"id"`
 	Name     string    `json:"name"`
 	Type     DEP       `json:"type"`
@@ -103,7 +103,7 @@ type EnvVar struct {
 }
 
 type User_Deployment_Request struct {
-	UserID     string          `json:"userid"`
+	UserID     string
 	Repo       string          `json:"repo"`
 	RepoBranch string          `json:"branch"`
 	Type       User_Deployment `json:"type"`
