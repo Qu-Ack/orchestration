@@ -137,15 +137,6 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 		return nil, err
 	}
 
-	if filepath.IsAbs(req.FilePath) {
-		return nil, errors.New("file_path must be relative to repo root")
-	}
-	fullPath := filepath.Join(clonePath, req.FilePath)
-
-	if err := s.findFile(fullPath); err != nil {
-		return nil, err
-	}
-
 	switch req.Type {
 	case USER_DEP_NEXT:
 		matches, _ := filepath.Glob(filepath.Join(clonePath, "next.config.*"))
@@ -176,8 +167,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: "ok",
 			Type:   req.Type.String(),
 			Identified: map[string]any{
-				"config":   filepath.Base(matches[0]),
-				"filepath": req.FilePath,
+				"config": filepath.Base(matches[0]),
 			},
 			Deployment: deployment,
 		}, nil
@@ -213,7 +203,6 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Type:   req.Type.String(),
 			Identified: map[string]any{
 				"dockerfile": dockerfile,
-				"filepath":   req.FilePath,
 			},
 			Deployment: deployment,
 		}, nil
@@ -247,8 +236,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: "ok",
 			Type:   req.Type.String(),
 			Identified: map[string]any{
-				"go_mod":   gomod,
-				"filepath": req.FilePath,
+				"go_mod": gomod,
 			},
 			Deployment: deployment,
 		}, nil
@@ -283,7 +271,6 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Type:   req.Type.String(),
 			Identified: map[string]any{
 				"package_json": pkg,
-				"filepath":     req.FilePath,
 			},
 			Deployment: deployment,
 		}, nil
@@ -317,8 +304,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: "ok",
 			Type:   req.Type.String(),
 			Identified: map[string]any{
-				"schema":   prisma,
-				"filepath": req.FilePath,
+				"schema": prisma,
 			},
 			Deployment: deployment,
 		}, nil
@@ -369,7 +355,6 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Type:   req.Type.String(),
 			Identified: map[string]any{
 				"docker_compose": dockerCompose,
-				"filepath":       req.FilePath,
 				"services":       maps.Keys(compose.Services),
 			},
 			Deployment: deployment,

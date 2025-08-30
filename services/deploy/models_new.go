@@ -107,7 +107,6 @@ type User_Deployment_Request struct {
 	Repo       string          `json:"repo"`
 	RepoBranch string          `json:"branch"`
 	Type       User_Deployment `json:"type"`
-	FilePath   string          `json:"file_path"`
 	Name       string          `json:"name"`
 }
 

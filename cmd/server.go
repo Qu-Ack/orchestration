@@ -122,5 +122,4 @@ func (s *Server) SetUpRoutes() {
 	s.r.GET("/deployment/:deploymentid/logs", s.AuthMiddleware(), s.GetContainerLogs)
 	s.r.POST("/v2/deployment/validate", s.ValidateDeployment)
 	s.r.POST("/v2/deployment/confirm", s.ConfirmDeployment)
-
 }
