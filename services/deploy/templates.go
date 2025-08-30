@@ -17,7 +17,6 @@ RUN npm install
 EXPOSE {{.Port}}
 CMD ["node", "./src/index.js"]
 `
-
 const GoDockerFileTemplate = `
 FROM golang:1.24-bookworm
 WORKDIR /app

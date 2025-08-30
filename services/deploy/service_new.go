@@ -28,79 +28,98 @@ func NEW() *service {
 
 func (s *service) NEW_DEPLOYMENT(deployment *Deployment_New) error {
 
-	// validate if needed
-	// add to db
-
-	switch deployment.Type {
-	case DEP_DOCKER_COMPOSE:
-		break
-	default:
-		for _, service := range deployment.Services {
-			s.DeployService(&service)
-		}
-
+	for _, service := range deployment.Services {
+		go s.DeployService(&service)
 	}
 
 	return nil
 
 }
 
-func (s *service) DeployService(serv *Service) error {
+func (s *service) WriteDockerFile(dockerfile *os.File, serv *Service) error {
 	switch serv.ServiceType {
 	case SER_NODE:
-		err := s.gitClone(serv.CodeRepo, serv.ClonePath)
-
-		if err != nil {
-			return err
-		}
-
-		dockerFilePath := filepath.Join(serv.ClonePath, "Dockerfile")
-
-		err = s.findFile(dockerFilePath)
-
-		if err != nil {
-			return err
-		}
-
-		dockerFile, err := os.Create(dockerFilePath)
-
-		if err != nil {
-			return err
-		}
-
-		_, err = dockerFile.WriteString(ExecuteNodeTemplate(DockerTemplateData{
+		_, err := dockerfile.WriteString(ExecuteNodeTemplate(DockerTemplateData{
 			RepoIdentifier: serv.ServiceID,
-			Port:           serv.Port,
 			EnvVars:        serv.EnvVars,
+			Port:           serv.Port,
+		}))
+		return err
+	case SER_NEXT:
+		_, err := dockerfile.WriteString(ExecuteNextTemplate(DockerTemplateData{
+			RepoIdentifier: serv.ServiceID,
+			EnvVars:        serv.EnvVars,
+			Port:           serv.Port,
+		}))
+		return err
+	case SER_GO:
+		_, err := dockerfile.WriteString(ExecuteGoTemplate(DockerTemplateData{
+			RepoIdentifier: serv.ServiceID,
+			EnvVars:        serv.EnvVars,
+			Port:           serv.Port,
 		}))
 
-		if err != nil {
-			return err
-		}
+		return err
 
-		err = s.buildDockerImage(serv.ClonePath, fmt.Sprintf("%v-%v", serv.ServiceID, serv.Domain))
-
-		if err != nil {
-			return err
-		}
-
-		err = s.StartDockerContainer(serv)
-
-		if err != nil {
-			return err
-		}
-		break
-	case SER_NEXT:
-		break
 	case SER_NEXT_PRISMA:
-		break
-	case SER_GO:
-		break
-	case SER_DOCKER:
-		break
+		_, err := dockerfile.WriteString(ExecuteNextPrismaTemplate(DockerTemplateData{
+			RepoIdentifier: serv.ServiceID,
+			EnvVars:        serv.EnvVars,
+			Port:           serv.Port,
+		}))
+		return err
+	case SER_VITE_REACT:
+		_, err := dockerfile.WriteString(ExecuteViteReactTemplate(DockerTemplateData{
+			RepoIdentifier: serv.ServiceID,
+			EnvVars:        serv.EnvVars,
+			Port:           serv.Port,
+		}))
+		return err
 	default:
-		return fmt.Errorf("Invalid service type")
+		return errors.New("invalid service type")
 	}
+}
+
+func (s *service) DeployService(serv *Service) error {
+	err := s.gitClone(serv.CodeRepo, serv.ClonePath)
+
+	if err != nil {
+		return err
+	}
+
+	dockerFilePath := filepath.Join(serv.ClonePath, "Dockerfile")
+
+	err = s.findFile(dockerFilePath)
+
+	if err != nil {
+		return err
+	}
+
+	dockerFile, err := os.Create(dockerFilePath)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.WriteDockerFile(dockerFile, serv)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.buildDockerImage(serv.ClonePath, fmt.Sprintf("%v-%v", serv.ServiceID, serv.Domain))
+
+	if err != nil {
+		return err
+	}
+
+	err = s.StartDockerContainer(serv)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) ValidateDeployment(req *User_Deployment_Request) (*User_Validation_response, error) {
