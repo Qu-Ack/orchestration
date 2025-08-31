@@ -44,7 +44,7 @@ func (s *Dservice) getCachedDeployment(id string, userid string) (*Deployment_Ne
 	if err := json.Unmarshal(val, &dep); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal cached deployment: %w", err)
 	}
-
+	dep.UserType = deploymentTypeMapServer[dep.Type]
 	return &dep, nil
 }
 

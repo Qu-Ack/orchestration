@@ -525,6 +525,8 @@ func (s *Server) ValidateDeployment(c *gin.Context) {
 		return
 	}
 
+	fmt.Println(resp)
+
 	c.JSON(http.StatusAccepted, resp)
 }
 
@@ -573,4 +575,18 @@ func (s *Server) GetPendingDeployments(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"deployments": deployments,
 	})
+}
+
+func (s *Server) GetPendingDeployment(c *gin.Context) {
+	did := c.Params.ByName("deploymentid")
+
+	deployment, err := s.deployServicev2.GET_SINGLE_PENDING_DEPLOYMENT("123456", did)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	c.JSON(http.StatusOK, deployment)
 }

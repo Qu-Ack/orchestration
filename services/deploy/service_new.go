@@ -7,6 +7,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/docker/docker/client"
 	"github.com/go-redis/redis"
@@ -154,8 +155,10 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
-					CodeRepo:       req.Repo,
-					CodeRepoBranch: req.RepoBranch,
+					CodeRepo:        req.Repo,
+					ServiceType:     SER_NEXT,
+					ServiceUserType: serviceTypeMap[SER_NEXT],
+					CodeRepoBranch:  req.RepoBranch,
 				},
 			},
 		}
@@ -188,8 +191,10 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
-					CodeRepo:       req.Repo,
-					CodeRepoBranch: req.RepoBranch,
+					CodeRepo:        req.Repo,
+					ServiceType:     SER_DOCKER,
+					ServiceUserType: serviceTypeMap[SER_DOCKER],
+					CodeRepoBranch:  req.RepoBranch,
 				},
 			},
 		}
@@ -223,8 +228,10 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
-					CodeRepo:       req.Repo,
-					CodeRepoBranch: req.RepoBranch,
+					CodeRepo:        req.Repo,
+					ServiceType:     SER_GO,
+					ServiceUserType: serviceTypeMap[SER_GO],
+					CodeRepoBranch:  req.RepoBranch,
 				},
 			},
 		}
@@ -258,8 +265,10 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
-					CodeRepo:       req.Repo,
-					CodeRepoBranch: req.RepoBranch,
+					CodeRepo:        req.Repo,
+					ServiceType:     SER_NODE,
+					ServiceUserType: serviceTypeMap[SER_NODE],
+					CodeRepoBranch:  req.RepoBranch,
 				},
 			},
 		}
@@ -293,8 +302,10 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
-					CodeRepo:       req.Repo,
-					CodeRepoBranch: req.RepoBranch,
+					CodeRepo:        req.Repo,
+					ServiceType:     SER_NEXT_PRISMA,
+					ServiceUserType: serviceTypeMap[SER_NEXT_PRISMA],
+					CodeRepoBranch:  req.RepoBranch,
 				},
 			},
 		}
@@ -335,9 +346,11 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 		var services []Service
 		for serviceName := range compose.Services {
 			services = append(services, Service{
-				Name:           serviceName,
-				CodeRepo:       req.Repo,
-				CodeRepoBranch: req.RepoBranch,
+				Name:            serviceName,
+				ServiceType:     SER_DOCKER,
+				ServiceUserType: serviceTypeMap[SER_DOCKER],
+				CodeRepo:        req.Repo,
+				CodeRepoBranch:  req.RepoBranch,
 			})
 		}
 
@@ -360,7 +373,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			Type:   req.Type,
 			Identified: map[string]any{
 				"docker_compose": dockerCompose,
-				"services":       maps.Keys(compose.Services),
+				"services":       slices.Collect(maps.Keys(compose.Services)),
 			},
 			Deployment: deployment,
 		}, nil
@@ -380,5 +393,12 @@ func (s *Dservice) GET_PENDING_DEPLOYMENTS(userid string) ([]*Deployment_New, er
 	return deployments, nil
 }
 
-func (s *Dservice) NEW_SERVICE() {
+func (s *Dservice) GET_SINGLE_PENDING_DEPLOYMENT(userid string, deploymentid string) (*Deployment_New, error) {
+	deployment, err := s.getCachedDeployment(deploymentid, userid)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return deployment, nil
 }

@@ -51,18 +51,32 @@ const (
 )
 
 type Service struct {
-	ServiceID      string   `json:"service_id"`
-	CodeRepo       string   `json:"code_repo"`
-	CodeRepoBranch string   `json:"code_repo_branch"`
-	ClonePath      string   `json:"clone_path"`
-	Name           string   `json:"name"`
-	ServiceType    SERVICE  `json:"service_type"`
-	Port           int      `json:"port"`
-	Domain         string   `json:"domain"`
-	EnvVars        []EnvVar `json:"envs"`
-	image          string
-	containerId    string
-	logFilePath    string
+	ServiceID       string   `json:"service_id"`
+	CodeRepo        string   `json:"code_repo"`
+	CodeRepoBranch  string   `json:"code_repo_branch"`
+	ClonePath       string   `json:"clone_path"`
+	Name            string   `json:"name"`
+	ServiceType     SERVICE  `json:"service_type"`
+	ServiceUserType string   `json:"service_user_type"`
+	Port            int      `json:"port"`
+	Domain          string   `json:"domain"`
+	EnvVars         []EnvVar `json:"envs"`
+	image           string
+	containerId     string
+	logFilePath     string
+}
+
+var serviceTypeMap = map[SERVICE]string{
+	SER_NEXT:        "next",
+	SER_NEXT_PRISMA: "next_prisma",
+	SER_NODE:        "node",
+	SER_GO:          "go",
+	SER_DOCKER:      "docker",
+	SER_POSTGRES:    "postgres",
+	SER_REDIS:       "redis",
+	SER_NGINX:       "nginx",
+	SER_VITE_HTML:   "vite_html",
+	SER_VITE_REACT:  "vite_react",
 }
 
 type Deployment_New struct {
