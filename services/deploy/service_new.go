@@ -137,7 +137,8 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 		return nil, err
 	}
 
-	switch req.Type {
+	DepType := deploymentTypeMap[req.Type]
+	switch DepType {
 	case USER_DEP_NEXT:
 		matches, _ := filepath.Glob(filepath.Join(clonePath, "next.config.*"))
 		if len(matches) == 0 {
@@ -149,6 +150,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			ID:     randId,
 			UserID: req.UserID,
 			Name:   req.Name,
+			Type:   DEP_NEXT,
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
@@ -165,7 +167,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 
 		return &User_Validation_response{
 			Status: "ok",
-			Type:   req.Type.String(),
+			Type:   req.Type,
 			Identified: map[string]any{
 				"config": filepath.Base(matches[0]),
 			},
@@ -200,7 +202,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 
 		return &User_Validation_response{
 			Status: "ok",
-			Type:   req.Type.String(),
+			Type:   req.Type,
 			Identified: map[string]any{
 				"dockerfile": dockerfile,
 			},
@@ -217,6 +219,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			UserID: req.UserID,
 			ID:     randId,
 			Name:   req.Name,
+			Type:   DEP_GO,
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
@@ -234,7 +237,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 
 		return &User_Validation_response{
 			Status: "ok",
-			Type:   req.Type.String(),
+			Type:   req.Type,
 			Identified: map[string]any{
 				"go_mod": gomod,
 			},
@@ -250,6 +253,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 		deployment := &Deployment_New{
 			ID:     randId,
 			Name:   req.Name,
+			Type:   DEP_NODE,
 			UserID: req.UserID,
 			Status: STATUS_PENDING,
 			Services: []Service{
@@ -268,7 +272,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 
 		return &User_Validation_response{
 			Status: "ok",
-			Type:   req.Type.String(),
+			Type:   req.Type,
 			Identified: map[string]any{
 				"package_json": pkg,
 			},
@@ -285,6 +289,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 			ID:     randId,
 			UserID: req.UserID,
 			Name:   req.Name,
+			Type:   DEP_NEXT_PRISMA,
 			Status: STATUS_PENDING,
 			Services: []Service{
 				{
@@ -302,7 +307,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 
 		return &User_Validation_response{
 			Status: "ok",
-			Type:   req.Type.String(),
+			Type:   req.Type,
 			Identified: map[string]any{
 				"schema": prisma,
 			},
@@ -352,7 +357,7 @@ func (s *Dservice) ValidateDeployment(req *User_Deployment_Request) (*User_Valid
 
 		return &User_Validation_response{
 			Status: "ok",
-			Type:   req.Type.String(),
+			Type:   req.Type,
 			Identified: map[string]any{
 				"docker_compose": dockerCompose,
 				"services":       maps.Keys(compose.Services),

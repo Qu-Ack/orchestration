@@ -35,29 +35,6 @@ const (
 	USER_DEP_NODE
 )
 
-func (u User_Deployment) String() string {
-	switch u {
-	case USER_DEP_DOCKER_COMPOSE:
-		return "docker_compose"
-	case USER_DEP_DOCKER:
-		return "docker"
-	case USER_DEP_GO:
-		return "go"
-	case USER_DEP_NEXT:
-		return "next"
-	case USER_DEP_PRISMA_NEXT:
-		return "prisma_next"
-	case USER_DEP_VITE_HTML:
-		return "vite_html"
-	case USER_DEP_VITE_REACT:
-		return "vite_react"
-	case USER_DEP_NODE:
-		return "node"
-	default:
-		return "unknown"
-	}
-}
-
 type SERVICE int
 
 const (
@@ -93,6 +70,7 @@ type Deployment_New struct {
 	ID       string    `json:"id"`
 	Name     string    `json:"name"`
 	Type     DEP       `json:"type"`
+	UserType string    `json:"user_type"`
 	Status   Status    `json:"status"`
 	Services []Service `json:"services"`
 }
@@ -102,12 +80,34 @@ type EnvVar struct {
 	Value string `json:"value"`
 }
 
+var deploymentTypeMapServer = map[DEP]string{
+	DEP_DOCKER_COMPOSE: "docker_compose",
+	DEP_DOCKER_FILE:    "docker_file",
+	DEP_GO:             "golang",
+	DEP_NEXT:           "next",
+	DEP_NEXT_PRISMA:    "next_prisma",
+	DEP_VITE_HTML:      "vite_html",
+	DEP_VITE_REACT:     "vite_react",
+	DEP_NODE:           "node",
+}
+
+var deploymentTypeMap = map[string]User_Deployment{
+	"docker_compose": USER_DEP_DOCKER_COMPOSE,
+	"docker_file":    USER_DEP_DOCKER,
+	"golang":         USER_DEP_GO,
+	"next":           USER_DEP_NEXT,
+	"next_prisma":    USER_DEP_PRISMA_NEXT,
+	"vite_html":      USER_DEP_VITE_HTML,
+	"vite_react":     USER_DEP_VITE_REACT,
+	"node":           USER_DEP_NODE,
+}
+
 type User_Deployment_Request struct {
 	UserID     string
-	Repo       string          `json:"repo"`
-	RepoBranch string          `json:"branch"`
-	Type       User_Deployment `json:"type"`
-	Name       string          `json:"name"`
+	Repo       string `json:"repo"`
+	RepoBranch string `json:"branch"`
+	Type       string `json:"type"`
+	Name       string `json:"name"`
 }
 
 type User_Validation_response struct {

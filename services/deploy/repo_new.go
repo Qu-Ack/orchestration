@@ -71,8 +71,10 @@ func (s *Dservice) getAllCachedDeploymentsOfUser(userid string) ([]*Deployment_N
 		}
 
 		if dep.Status == STATUS_PENDING {
+			dep.UserType = deploymentTypeMapServer[dep.Type]
 			deployments = append(deployments, dep)
 		}
+
 	}
 
 	if err := iter.Err(); err != nil {

@@ -560,3 +560,17 @@ func (s *Server) ConfirmDeployment(c *gin.Context) {
 		"message": "deployment queued",
 	})
 }
+
+func (s *Server) GetPendingDeployments(c *gin.Context) {
+	deployments, err := s.deployServicev2.GET_PENDING_DEPLOYMENTS("123456")
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"deployments": deployments,
+	})
+}
